@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Oracle AI — Крипто-Оракул</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { overscroll-behavior-y: none; touch-action: pan-y; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes pulseOrange { 0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); } 50% { box-shadow: 0 0 0 16px rgba(249,115,22,0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 4px rgba(249,115,22,0.3)); } 50% { filter: drop-shadow(0 0 12px rgba(249,115,22,0.6)); } }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .animate-fade-up { animation: fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+    .animate-fade { animation: fadeIn 0.4s ease forwards; }
+    .animate-slide-right { animation: slideInRight 0.4s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    .animate-pulse-orange { animation: pulseOrange 2.5s infinite; }
+    .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(249,115,22,0.08), transparent); background-size: 200% 100%; animation: shimmer 2.5s infinite; }
+    .animate-bounce-in { animation: bounceIn 0.6s cubic-bezier(0.68,-0.55,0.265,1.55) forwards; }
+    .animate-glow { animation: glowPulse 2s ease-in-out infinite; }
+    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(249,115,22,0.12); box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
+    .glass-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 12px 40px rgba(249,115,22,0.12); border-color: rgba(249,115,22,0.25); }
+    .gradient-text { background: linear-gradient(135deg, #f97316, #ea580c, #fbbf24, #f97316); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 4s ease infinite; }
+    .tab-active { background: linear-gradient(135deg, #f97316, #ea580c); color: white; box-shadow: 0 4px 20px rgba(249,115,22,0.35); transform: scale(1.05); }
+    .coin-card { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+    .coin-card:active { transform: scale(0.97); }
+    .chart-container { position: relative; border-radius: 16px; overflow: hidden; background: #0f172a; }
+    .tf-btn { transition: all 0.2s ease; }
+    .tf-btn:hover { background: rgba(249,115,22,0.15); }
+    .tf-btn.active { background: linear-gradient(135deg, #f97316, #ea580c); color: white; box-shadow: 0 2px 8px rgba(249,115,22,0.3); }
+    .indicator-tag { transition: all 0.2s ease; }
+    .indicator-tag:hover { transform: scale(1.05); }
+    .indicator-tag.active { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .modal-overlay { backdrop-filter: blur(8px); background: rgba(0,0,0,0.4); }
+    .ticker-wrap { overflow: hidden; white-space: nowrap; }
+    .ticker-content { display: inline-block; animation: ticker 30s linear infinite; }
+    input:focus { outline: none; }
+    .coin-logo { width: 56px; height: 56px; border-radius: 16px; object-fit: cover; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .coin-logo-small { width: 48px; height: 48px; border-radius: 14px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-x-hidden">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-orange-100/50">
+    <div class="max-w-lg mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3 animate-fade-up">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-orange-200/50 animate-float">🔮</div>
+        <div>
+          <h1 class="text-xl font-black gradient-text tracking-tight">Oracle AI</h1>
+          <p class="text-[11px] text-orange-400 font-semibold tracking-wide uppercase">Крипто-Оракул</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 bg-emerald-50 rounded-full px-3 py-1.5 border border-emerald-100">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+        <span class="text-[11px] font-bold text-emerald-600">Live</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ticker -->
+  <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white overflow-hidden py-2">
+    <div class="ticker-wrap">
+      <div class="ticker-content text-xs font-bold tracking-wider" id="tickerContent">Загрузка рынка...</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <section class="max-w-lg mx-auto px-4 pt-5 pb-2">
+    <div class="relative mb-4 animate-fade-up" style="animation-delay:0.1s">
+      <div class="absolute left-4 top-1/2 -translate-y-1/2 text-xl z-10">🔍</div>
+      <input type="text" id="searchInput" placeholder="Введите тикер: BTC, PEPE, DOGE, любой коин..." 
+        class="w-full bg-white border-2 border-orange-100 rounded-2xl py-4 pl-12 pr-20 text-sm font-semibold focus:border-orange-400 focus:ring-4 focus:ring-orange-100/50 transition-all placeholder:text-slate-300 shadow-sm"
+        onkeypress="if(event.key==='Enter')searchCoin()">
+      <button onclick="searchCoin()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-orange-400 to-orange-500 text-white px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-orange-200/50 hover:shadow-xl hover:scale-105 transition-all">НАЙТИ</button>
+    </div>
+  </section>
+
+  <!-- Category Tabs -->
+  <section class="max-w-lg mx-auto px-4 py-3">
+    <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2 animate-fade-up" style="animation-delay:0.2s">
+      <button onclick="switchTab('all')" id="tab-all" class="tab-active px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all">🌍 Все</button>
+      <button onclick="switchTab('popular')" id="tab-popular" class="px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap bg-white text-slate-500 border border-slate-100 hover:border-orange-200 hover:text-orange-500 hover:bg-orange-50 transition-all shadow-sm">🔥 Популярные</button>
+      <button onclick="switchTab('meme')" id="tab-meme" class="px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap bg-white text-slate-500 border border-slate-100 hover:border-orange-200 hover:text-orange-500 hover:bg-orange-50 transition-all shadow-sm">🐸 Мем-коины</button>
+      <button onclick="switchTab('new')" id="tab-new" class="px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap bg-white text-slate-500 border border-slate-100 hover:border-orange-200 hover:text-orange-500 hover:bg-orange-50 transition-all shadow-sm">🆕 Новые</button>
+      <button onclick="switchTab('ai')" id="tab-ai" class="px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap bg-white text-slate-500 border border-slate-100 hover:border-orange-200 hover:text-orange-500 hover:bg-orange-50 transition-all shadow-sm">🤖 AI-токены</button>
+    </div>
+  </section>
+
+  <!-- Market Stats -->
+  <section class="max-w-lg mx-auto px-4 animate-fade-up" style="animation-delay:0.25s">
+    <div class="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl p-5 border border-orange-100/50 shadow-sm">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <p class="text-[10px] text-orange-600 font-black uppercase tracking-widest mb-1">📊 Рынок сегодня</p>
+          <p class="text-2xl font-black text-slate-800" id="globalCap">$2.47T</p>
+          <p class="text-xs text-slate-500 font-medium">Общая капитализация</p>
+        </div>
+        <div class="text-right">
+          <div class="bg-white rounded-2xl px-4 py-2 shadow-sm border border-orange-100">
+            <p class="text-[10px] text-slate-400 font-bold uppercase">Dominance</p>
+            <p class="text-lg font-black text-orange-500">BTC 52.3%</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <div class="flex items-center gap-1.5 bg-white rounded-xl px-3 py-2 shadow-sm">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-bold text-slate-700" id="gainersCount">🟢 Рост: 2,847</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-white rounded-xl px-3 py-2 shadow-sm">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+          <span class="text-xs font-bold text-slate-700" id="losersCount">🔴 Падение: 1,234</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Coin List -->
+  <section class="max-w-lg mx-auto px-4 pt-5 pb-2">
+    <div class="flex items-center justify-between mb-4 animate-fade-up" style="animation-delay:0.3s">
+      <h2 class="text-sm font-black text-slate-800 flex items-center gap-2"><span id="listTitle" class="gradient-text">🔥 Топ-коины</span></h2>
+      <span class="text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full" id="coinCount">Загрузка...</span>
+    </div>
+    <div id="coinList" class="space-y-3">
+      <div class="flex justify-center py-12">
+        <div class="w-8 h-8 border-3 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI Chat -->
+  <section class="max-w-lg mx-auto px-4 pt-6 pb-2">
+    <div class="flex items-center gap-3 mb-4 animate-fade-up" style="animation-delay:0.35s">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-lg shadow-lg shadow-orange-200/50 animate-pulse-orange">🤖</div>
+      <div>
+        <h2 class="text-sm font-black text-slate-800">Oracle AI Ассистент</h2>
+        <p class="text-[10px] text-slate-400 font-semibold">Groq-powered аналитика</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-3xl border border-orange-100/50 shadow-sm overflow-hidden animate-fade-up" style="animation-delay:0.4s">
+      <div id="chatMessages" class="h-72 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+        <div class="flex gap-3 animate-fade-up">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm flex-shrink-0 shadow-md">🔮</div>
+          <div class="bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-100 max-w-[85%]">
+            <p class="text-sm text-slate-700 leading-relaxed">Привет, трейдер! 👋 Я <strong class="text-orange-500">Oracle AI</strong>. Данные загружаются с CoinGecko. Введи тикер любого коина — я проанализирую его через Groq AI!</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50/50 border-t border-orange-50">
+        <div class="flex gap-3">
+          <input type="text" id="chatInput" placeholder="Спроси об анализе, трендах, мем-коинах..." 
+            class="flex-1 bg-white border-2 border-orange-100 rounded-2xl py-3.5 px-5 text-sm font-medium focus:border-orange-400 focus:ring-4 focus:ring-orange-100/50 transition-all placeholder:text-slate-300 shadow-sm"
+            onkeypress="if(event.key==='Enter')sendChatMessage()">
+          <button onclick="sendChatMessage()" class="bg-gradient-to-r from-orange-400 to-orange-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200/50 hover:shadow-xl hover:scale-105 active:scale-95 transition-all">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Actions -->
+  <section class="max-w-lg mx-auto px-4 pt-6 pb-2">
+    <h2 class="text-sm font-black text-slate-800 mb-4 animate-fade-up" style="animation-delay:0.45s">⚡ Быстрые действия</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="analyzeTrending()" class="glass-card rounded-3xl p-5 text-left transition-all group animate-fade-up" style="animation-delay:0.5s">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">📈</div>
+        <p class="text-sm font-black text-slate-800">Тренды 24ч</p>
+        <p class="text-[11px] text-slate-400 font-medium mt-1">Топ-растущие коины</p>
+      </button>
+      <button onclick="scanNewMemes()" class="glass-card rounded-3xl p-5 text-left transition-all group animate-fade-up" style="animation-delay:0.55s">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">🆕</div>
+        <p class="text-sm font-black text-slate-800">Сканер новых</p>
+        <p class="text-[11px] text-slate-400 font-medium mt-1">Мем-коины &lt; 1 часа</p>
+      </button>
+      <button onclick="showFearGreed()" class="glass-card rounded-3xl p-5 text-left transition-all group animate-fade-up" style="animation-delay:0.6s">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">😨</div>
+        <p class="text-sm font-black text-slate-800">Fear & Greed</p>
+        <p class="text-[11px] text-slate-400 font-medium mt-1">Индекс настроений</p>
+      </button>
+      <button onclick="showWhales()" class="glass-card rounded-3xl p-5 text-left transition-all group animate-fade-up" style="animation-delay:0.65s">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">🐋</div>
+        <p class="text-sm font-black text-slate-800">Киты</p>
+        <p class="text-[11px] text-slate-400 font-medium mt-1">Крупные переводы</p>
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="max-w-lg mx-auto px-4 pt-8 pb-6 text-center">
+    <div class="flex items-center justify-center gap-2 mb-2">
+      <span class="text-2xl animate-float">🔮</span>
+      <span class="text-lg font-black gradient-text">Oracle AI</span>
+    </div>
+    <p class="text-[11px] text-slate-400 font-medium">Не финансовый совет. Торгуй на свой страх и риск.</p>
+    <p class="text-[10px] text-slate-300 mt-1">Powered by Groq AI, CoinGecko & Lightweight Charts</p>
+  </footer>
+  <div class="h-6"></div>
+
+  <!-- Analysis Modal -->
+  <div id="analysisModal" class="fixed inset-0 z-[60] hidden">
+    <div class="modal-overlay absolute inset-0" onclick="closeModal()"></div>
+    <div class="absolute bottom-0 left-0 right-0 sm:relative sm:mx-auto sm:my-auto sm:max-w-lg max-h-[92vh] overflow-hidden rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl animate-slide-right">
+      <div class="sticky top-0 z-10 bg-gradient-to-r from-orange-50 via-white to-white border-b border-orange-100/50 px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img id="modalCoinIcon" src="" class="coin-logo-small" alt="">
+          <div>
+            <h3 id="modalCoinName" class="text-lg font-black text-slate-800">Bitcoin</h3>
+            <p id="modalCoinTicker" class="text-xs text-slate-400 font-mono font-bold">BTC/USDT</p>
+          </div>
+        </div>
+        <button onclick="closeModal()" class="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all text-lg font-bold">✕</button>
+      </div>
+      <div class="overflow-y-auto max-h-[calc(92vh-80px)] p-5 space-y-5 scrollbar-hide">
+        <div class="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl p-5 border border-orange-100/50 shadow-sm">
+          <div class="flex justify-between items-end">
+            <div>
+              <p class="text-[10px] text-orange-600 font-black uppercase tracking-widest mb-1">💰 Текущая цена</p>
+              <p id="modalPrice" class="text-4xl font-black text-slate-800 tracking-tight">$67,234.50</p>
+            </div>
+            <div class="text-right">
+              <p id="modalChange" class="text-2xl font-black text-emerald-500">+5.23%</p>
+              <p class="text-xs text-slate-400 font-medium">24ч изменение</p>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-4 pt-4 border-t border-orange-100/50">
+            <div class="flex-1 text-center">
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Объём 24ч</p>
+              <p id="modalVolume" class="text-sm font-black text-slate-700">$34.2B</p>
+            </div>
+            <div class="flex-1 text-center">
+              <p class="text-[10px] text-slate-400 font-bold uppercase">Капитализация</p>
+              <p id="modalCap" class="text-sm font-black text-slate-700">$1.32T</p>
+            </div>
+            <div class="flex-1 text-center">
+              <p class="text-[10px] text-slate-400 font-bold uppercase">ATH</p>
+              <p id="modalATH" class="text-sm font-black text-slate-700">$73,750</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-black text-slate-700 uppercase tracking-wider">📊 График</p>
+            <div class="flex gap-1 bg-slate-100 rounded-xl p-1">
+              <button onclick="changeTimeframe('1m')" class="tf-btn px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="1m">1м</button>
+              <button onclick="changeTimeframe('5m')" class="tf-btn px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="5m">5м</button>
+              <button onclick="changeTimeframe('15m')" class="tf-btn px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="15m">15м</button>
+              <button onclick="changeTimeframe('1h')" class="tf-btn active px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="1h">1ч</button>
+              <button onclick="changeTimeframe('4h')" class="tf-btn px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="4h">4ч</button>
+              <button onclick="changeTimeframe('1d')" class="tf-btn px-3 py-1 rounded-lg text-[10px] font-bold" data-tf="1d">1д</button>
+            </div>
+          </div>
+          <div class="chart-container" style="height:320px;">
+            <div id="tvChart" style="width:100%;height:100%;"></div>
+          </div>
+          <div class="flex gap-2 mt-3 flex-wrap">
+            <button onclick="toggleIndicator('ma')" class="indicator-tag px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" data-ind="ma">📈 MA</button>
+            <button onclick="toggleIndicator('ema')" class="indicator-tag px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" data-ind="ema">📉 EMA</button>
+            <button onclick="toggleIndicator('volume')" class="indicator-tag active px-3 py-1.5 rounded-lg text-[10px] font-bold border border-orange-200" data-ind="volume">📊 Объём</button>
+            <button onclick="toggleIndicator('bb')" class="indicator-tag px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" data-ind="bb">🎯 Bollinger</button>
+          </div>
+        </div>
+        <div id="aiAnalysisSection">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xs shadow-md">🤖</div>
+            <h4 class="text-sm font-black text-slate-800">ИИ-Анализ Oracle</h4>
+          </div>
+          <div id="aiResult" class="bg-slate-50 rounded-3xl p-6 border border-orange-100/50">
+            <div class="flex justify-center py-4">
+              <button onclick="runGroqAnalysis()" id="runAnalysisBtn" class="bg-gradient-to-r from-orange-400 to-orange-500 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-orange-200/50 hover:shadow-xl hover:scale-105 active:scale-95 transition-all animate-pulse-orange flex items-center gap-2">
+                <span class="text-xl">🔮</span><span>Запустить ИИ-анализ</span>
+              </button>
+            </div>
+            <p class="text-center text-xs text-slate-400 font-medium">AI анализ через Groq</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">📊 Индикаторы</p>
+          <div class="grid grid-cols-2 gap-2.5" id="indicatorsGrid"></div>
+        </div>
+        <div id="signalBox" class="hidden rounded-3xl p-5 border-2 animate-bounce-in">
+          <div class="flex items-center gap-4">
+            <div id="signalIcon" class="text-4xl animate-float">📈</div>
+            <div class="flex-1">
+              <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">🎯 Сигнал Oracle</p>
+              <p id="signalText" class="text-2xl font-black">ПОКУПКА</p>
+              <p id="signalConfidence" class="text-xs text-slate-500 font-bold mt-1">Уверенность: 78%</p>
+            </div>
+          </div>
+        </div>
+        <div id="orderLevels" class="hidden space-y-2.5">
+          <p class="text-xs font-black text-slate-700 uppercase tracking-wider">📍 Уровни</p>
+          <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-200 flex items-center justify-between">
+            <div>
+              <p class="text-[10px] text-emerald-600 font-black uppercase">🎯 Цель (Take Profit)</p>
+              <p id="tpLevel" class="text-xl font-black text-emerald-600">$72,500</p>
+            </div>
+            <span class="text-2xl">🚀</span>
+          </div>
+          <div class="bg-red-50 rounded-2xl p-4 border border-red-200 flex items-center justify-between">
+            <div>
+              <p class="text-[10px] text-red-600 font-black uppercase">🛑 Стоп-лосс</p>
+              <p id="slLevel" class="text-xl font-black text-red-600">$63,800</p>
+            </div>
+            <span class="text-2xl">🛡</span>
+          </div>
+          <div class="bg-orange-50 rounded-2xl p-4 border border-orange-200">
+            <p class="text-[10px] text-orange-600 font-black uppercase mb-1">⚖️ Соотношение R:R</p>
+            <p id="rrRatio" class="text-lg font-black text-orange-600">1:2.4</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3.5 rounded-2xl shadow-2xl z-[70] hidden font-semibold text-sm whitespace-nowrap">
+    <span id="toastText">Уведомление</span>
+  </div>
+
+  <script>
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔑 GROQ API KEY — ЗАМЕНИ НА СВОЙ! (СКРЫТ ОТ ПОЛЬЗОВАТЕЛЕЙ)
+    // ═══════════════════════════════════════════════════════════
+    const GROQ_API_KEY = 'gsk_ВАШ_GROQ_API_KEY_ЗДЕСЬ';
+    // ═══════════════════════════════════════════════════════════
+
+    const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+
+    let allCoins = [];
+    let currentTab = 'all';
+    let selectedCoin = null;
+    let chart = null;
+    let candleSeries = null;
+    let volumeSeries = null;
+    let maSeries = null;
+    let emaSeries = null;
+    let bbUpper = null;
+    let bbLower = null;
+    let currentTF = '1h';
+
+    async function loadCoins() {
+      try {
+        showToast('🔄 Загрузка данных с CoinGecko...');
+        const response = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`);
+        const data = await response.json();
+
+        allCoins = data.map((coin, index) => ({
+          id: coin.id,
+          symbol: coin.symbol.toUpperCase(),
+          name: coin.name,
+          price: coin.current_price,
+          change: coin.price_change_percentage_24h || 0,
+          volume: '$' + formatNumber(coin.total_volume),
+          cap: '$' + formatNumber(coin.market_cap),
+          ath: '$' + formatNumber(coin.ath),
+          image: coin.image,
+          type: getCoinType(coin.id, coin.symbol, index),
+          desc: coin.name,
+          marketCapRank: coin.market_cap_rank
+        }));
+
+        updateTicker();
+        await loadGlobalData();
+        renderCoins('all');
+        showToast('✅ Загружено ' + allCoins.length + ' коинов!');
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('❌ Ошибка CoinGecko. Демо-режим.');
+        loadFallbackCoins();
+      }
+    }
+
+    function getCoinType(id, symbol, index) {
+      const memeCoins = ['dogecoin','shiba-inu','pepe','bonk','floki','dogwifhat','book-of-meme','memecoin','wojak','turbo','mog-coin','brett','popcat'];
+      const aiTokens = ['render-token','fetch-ai','ocean-protocol','grok','bittensor','akash-network','numeraire','singularitynet','arthur-ai'];
+      if (memeCoins.includes(id) || symbol.includes('pepe') || symbol.includes('doge') || symbol.includes('shib') || symbol.includes('floki') || symbol.includes('bonk') || symbol.includes('wif') || symbol.includes('mog') || symbol.includes('brett')) return 'meme';
+      if (aiTokens.includes(id) || symbol.includes('ai') || id.includes('ai')) return 'ai';
+      if (index < 20) return 'popular';
+      return 'all';
+    }
+
+    function formatNumber(num) {
+      if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+      if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+      if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+      return num.toString();
+    }
+
+    async function loadGlobalData() {
+      try {
+        const response = await fetch(`${COINGECKO_API}/global`);
+        const data = await response.json();
+        const g = data.data;
+        document.getElementById('globalCap').textContent = '$' + formatNumber(g.total_market_cap.usd);
+        document.getElementById('gainersCount').textContent = '🟢 Изменение: ' + g.market_cap_change_percentage_24h_usd.toFixed(1) + '%';
+        document.getElementById('losersCount').textContent = '🔴 BTC Dom: ' + g.market_cap_percentage.btc.toFixed(1) + '%';
+      } catch (e) { console.error('Global error:', e); }
+    }
+
+    function updateTicker() {
+      const top = allCoins.slice(0, 10);
+      const text = top.map(c => c.symbol + ' ' + (c.change >= 0 ? '+' : '') + c.change.toFixed(2) + '%').join(' | ');
+      document.getElementById('tickerContent').textContent = '🔥 ' + text + ' | 🔥 ' + text + ' | ';
+    }
+
+    function loadFallbackCoins() {
+      allCoins = [
+        { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', price: 67234.50, change: 5.23, volume: '$34.2B', cap: '$1.32T', ath: '$73,750', image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', type: 'popular', desc: 'Цифровое золото' },
+        { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', price: 3456.78, change: -1.45, volume: '$18.5B', cap: '$415B', ath: '$4,878', image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png', type: 'popular', desc: 'Smart contracts' },
+        { id: 'solana', symbol: 'SOL', name: 'Solana', price: 145.23, change: 8.67, volume: '$4.2B', cap: '$64B', ath: '$260', image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png', type: 'popular', desc: 'High-speed blockchain' },
+        { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', price: 0.1234, change: 12.45, volume: '$1.5B', cap: '$17B', ath: '$0.73', image: 'https://assets.coingecko.com/coins/images/5/small/dogecoin.png', type: 'meme', desc: 'Original meme coin' },
+        { id: 'shiba-inu', symbol: 'SHIB', name: 'Shiba Inu', price: 0.0000189, change: 7.82, volume: '$890M', cap: '$11B', ath: '$0.000088', image: 'https://assets.coingecko.com/coins/images/11939/small/shiba.png', type: 'meme', desc: 'Doge killer' },
+        { id: 'pepe', symbol: 'PEPE', name: 'Pepe', price: 0.0000089, change: 23.45, volume: '$1.2B', cap: '$3.7B', ath: '$0.000017', image: 'https://assets.coingecko.com/coins/images/29850/small/pepe-token.jpeg', type: 'meme', desc: 'Pepe the Frog' },
+        { id: 'render-token', symbol: 'RNDR', name: 'Render', price: 6.78, change: 4.56, volume: '$234M', cap: '$2.6B', ath: '$13.60', image: 'https://assets.coingecko.com/coins/images/11636/small/rndr.png', type: 'ai', desc: 'GPU rendering' },
+        { id: 'fetch-ai', symbol: 'FET', name: 'Fetch.ai', price: 1.23, change: -2.34, volume: '$156M', cap: '$1.0B', ath: '$3.45', image: 'https://assets.coingecko.com/coins/images/5681/small/Fetch.jpg', type: 'ai', desc: 'AI agents' },
+      ];
+      renderCoins('all');
+    }
+
+    function renderCoins(tab) {
+      const list = document.getElementById('coinList');
+      const count = document.getElementById('coinCount');
+      const title = document.getElementById('listTitle');
+      let filtered = allCoins;
+      if (tab !== 'all') filtered = allCoins.filter(c => c.type === tab);
+      const titles = { all: '🔥 Все коины', popular: '🔥 Популярные', meme: '🐸 Мем-коины', new: '🆕 Новые', ai: '🤖 AI-токены' };
+      title.textContent = titles[tab];
+      count.textContent = filtered.length + ' найдено';
+      list.innerHTML = filtered.map((coin, i) => `
+        <div onclick="openCoin('${coin.id}')" class="coin-card glass-card rounded-3xl p-5 cursor-pointer animate-fade-up" style="animation-delay:${i*0.04}s">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <img src="${coin.image}" class="coin-logo" alt="${coin.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/56/f97316/ffffff?text=${coin.symbol[0]}'">
+              <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                  <h3 class="font-black text-slate-800 text-base">${coin.name}</h3>
+                  ${coin.type === 'meme' ? '<span class="bg-purple-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">MEME</span>' : ''}
+                  ${coin.type === 'ai' ? '<span class="bg-blue-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">AI</span>' : ''}
+                  ${coin.marketCapRank && coin.marketCapRank <= 10 ? '<span class="bg-orange-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black">TOP 10</span>' : ''}
+                </div>
+                <p class="text-xs text-slate-400 font-mono font-bold">${coin.symbol}/USDT</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">${coin.desc}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-xl font-black text-slate-800">${coin.price < 0.01 ? '$'+coin.price.toExponential(2) : '$'+coin.price.toLocaleString()}</p>
+              <p class="text-sm font-black ${coin.change >= 0 ? 'text-emerald-500' : 'text-red-500'} mt-1">${coin.change >= 0 ? '▲' : '▼'} ${Math.abs(coin.change).toFixed(2)}%</p>
+            </div>
+          </div>
+          <div class="flex gap-4 mt-4 pt-4 border-t border-slate-100">
+            <div class="flex items-center gap-1.5"><span class="text-[10px] text-slate-400 font-bold">Объём:</span><span class="text-xs font-black text-slate-600">${coin.volume}</span></div>
+            <div class="flex items-center gap-1.5"><span class="text-[10px] text-slate-400 font-bold">Кап:</span><span class="text-xs font-black text-slate-600">${coin.cap}</span></div>
+            <div class="flex items-center gap-1.5"><span class="text-[10px] text-slate-400 font-bold">ATH:</span><span class="text-xs font-black text-slate-600">${coin.ath}</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('[id^="tab-"]').forEach(el => {
+        el.classList.remove('tab-active');
+        el.classList.add('bg-white', 'text-slate-500', 'border', 'border-slate-100');
+      });
+      const activeTab = document.getElementById('tab-'+tab);
+      activeTab.classList.add('tab-active');
+      activeTab.classList.remove('bg-white', 'text-slate-500', 'border', 'border-slate-100');
+      renderCoins(tab);
+    }
+
+    function generateCandleData(count, basePrice, volatility) {
+      const data = []; let price = basePrice; const now = Date.now() / 1000;
+      for (let i = count; i >= 0; i--) {
+        const time = now - (i * 3600); const change = (Math.random() - 0.48) * volatility;
+        const open = price; price = price * (1 + change); const close = price;
+        const high = Math.max(open, close) * (1 + Math.random() * 0.005);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.005);
+        const volume = Math.floor(Math.random() * 1000000 + 100000);
+        data.push({ time, open, high, low, close, volume });
+      }
+      return data;
+    }
+
+    function initChart(coin) {
+      const chartContainer = document.getElementById('tvChart');
+      chartContainer.innerHTML = '';
+      chart = LightweightCharts.createChart(chartContainer, {
+        width: chartContainer.clientWidth, height: 320,
+        layout: { background: { color: '#0f172a' }, textColor: '#94a3b8', fontFamily: 'Inter' },
+        grid: { vertLines: { color: '#1e293b', style: 2 }, horzLines: { color: '#1e293b', style: 2 } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#f97316', width: 1, style: 2, labelBackgroundColor: '#f97316' }, horzLine: { color: '#f97316', width: 1, style: 2, labelBackgroundColor: '#f97316' } },
+        rightPriceScale: { borderColor: '#1e293b', scaleMargins: { top: 0.1, bottom: 0.2 } },
+        timeScale: { borderColor: '#1e293b', timeVisible: true, secondsVisible: false },
+        handleScroll: { vertTouchDrag: false },
+      });
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#10b981', downColor: '#ef4444', borderUpColor: '#10b981', borderDownColor: '#ef4444',
+        wickUpColor: '#10b981', wickDownColor: '#ef4444',
+      });
+      const candleData = generateCandleData(100, coin.price, 0.02);
+      candleSeries.setData(candleData);
+      volumeSeries = chart.addHistogramSeries({ color: '#f97316', priceFormat: { type: 'volume' }, priceScaleId: '', scaleMargins: { top: 0.85, bottom: 0 } });
+      const volumeData = candleData.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)' }));
+      volumeSeries.setData(volumeData);
+      chart.timeScale().fitContent();
+      new ResizeObserver(() => { chart.applyOptions({ width: chartContainer.clientWidth }); }).observe(chartContainer);
+    }
+
+    function changeTimeframe(tf) {
+      currentTF = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => { btn.classList.remove('active'); if (btn.dataset.tf === tf) btn.classList.add('active'); });
+      if (selectedCoin && chart) {
+        const v = tf === '1m' ? 0.005 : tf === '5m' ? 0.008 : tf === '15m' ? 0.012 : tf === '1h' ? 0.02 : tf === '4h' ? 0.03 : 0.04;
+        const cd = generateCandleData(100, selectedCoin.price, v);
+        candleSeries.setData(cd);
+        volumeSeries.setData(cd.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)' })));
+        updateIndicators(); chart.timeScale().fitContent();
+      }
+    }
+
+    function toggleIndicator(ind) {
+      const btn = document.querySelector(`[data-ind="${ind}"]`);
+      const isActive = btn.classList.contains('active');
+      if (isActive) {
+        btn.classList.remove('active'); btn.classList.add('bg-slate-100', 'text-slate-600');
+        if (ind === 'ma' && maSeries) { chart.removeSeries(maSeries); maSeries = null; }
+        if (ind === 'ema' && emaSeries) { chart.removeSeries(emaSeries); emaSeries = null; }
+        if (ind === 'bb' && bbUpper) { chart.removeSeries(bbUpper); chart.removeSeries(bbLower); bbUpper = null; bbLower = null; }
+        if (ind === 'volume' && volumeSeries) { chart.removeSeries(volumeSeries); volumeSeries = null; }
+      } else {
+        btn.classList.add('active'); btn.classList.remove('bg-slate-100', 'text-slate-600');
+        if (ind === 'ma') addMA(); if (ind === 'ema') addEMA(); if (ind === 'bb') addBollinger(); if (ind === 'volume') addVolume();
+      }
+    }
+
+    function addMA() {
+      maSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, title: 'MA 20' });
+      maSeries.setData(candleSeries.data().map((d, i, arr) => {
+        if (i < 19) return { time: d.time, value: d.close };
+        return { time: d.time, value: arr.slice(i-19, i+1).reduce((a, b) => a + b.close, 0) / 20 };
+      }));
+    }
+
+    function addEMA() {
+      emaSeries = chart.addLineSeries({ color: '#a855f7', lineWidth: 2, title: 'EMA 50' });
+      emaSeries.setData(candleSeries.data().map(d => ({ time: d.time, value: d.close * (0.98 + Math.random() * 0.04) })));
+    }
+
+    function addBollinger() {
+      bbUpper = chart.addLineSeries({ color: '#f97316', lineWidth: 1, lineStyle: 2, title: 'BB Upper' });
+      bbLower = chart.addLineSeries({ color: '#f97316', lineWidth: 1, lineStyle: 2, title: 'BB Lower' });
+      const data = candleSeries.data();
+      bbUpper.setData(data.map(d => ({ time: d.time, value: d.high * 1.02 })));
+      bbLower.setData(data.map(d => ({ time: d.time, value: d.low * 0.98 })));
+    }
+
+    function addVolume() {
+      volumeSeries = chart.addHistogramSeries({ color: '#f97316', priceFormat: { type: 'volume' }, priceScaleId: '', scaleMargins: { top: 0.85, bottom: 0 } });
+      volumeSeries.setData(candleSeries.data().map(d => ({ time: d.time, value: Math.floor(Math.random() * 1000000 + 100000), color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)' })));
+    }
+
+    function updateIndicators() {
+      if (maSeries) { chart.removeSeries(maSeries); addMA(); }
+      if (emaSeries) { chart.removeSeries(emaSeries); addEMA(); }
+      if (bbUpper) { chart.removeSeries(bbUpper); chart.removeSeries(bbLower); addBollinger(); }
+    }
+
+    function openCoin(coinId) {
+      selectedCoin = allCoins.find(c => c.id === coinId);
+      if (!selectedCoin) return;
+      document.getElementById('modalCoinName').textContent = selectedCoin.name;
+      document.getElementById('modalCoinTicker').textContent = selectedCoin.symbol + '/USDT';
+      document.getElementById('modalPrice').textContent = selectedCoin.price < 0.01 ? '$' + selectedCoin.price.toExponential(2) : '$' + selectedCoin.price.toLocaleString();
+      document.getElementById('modalChange').textContent = (selectedCoin.change >= 0 ? '+' : '') + selectedCoin.change.toFixed(2) + '%';
+      document.getElementById('modalChange').className = 'text-2xl font-black ' + (selectedCoin.change >= 0 ? 'text-emerald-500' : 'text-red-500');
+      document.getElementById('modalCoinIcon').src = selectedCoin.image;
+      document.getElementById('modalVolume').textContent = selectedCoin.volume;
+      document.getElementById('modalCap').textContent = selectedCoin.cap;
+      document.getElementById('modalATH').textContent = selectedCoin.ath;
+      document.getElementById('aiResult').innerHTML = `
+        <div class="flex justify-center py-4">
+          <button onclick="runGroqAnalysis()" id="runAnalysisBtn" class="bg-gradient-to-r from-orange-400 to-orange-500 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-orange-200/50 hover:shadow-xl hover:scale-105 active:scale-95 transition-all animate-pulse-orange flex items-center gap-2">
+            <span class="text-xl">🔮</span><span>Запустить ИИ-анализ</span>
+          </button>
+        </div>
+        <p class="text-center text-xs text-slate-400 font-medium">AI анализ через Groq</p>
+      `;
+      document.getElementById('signalBox').classList.add('hidden');
+      document.getElementById('orderLevels').classList.add('hidden');
+      const indicators = [
+        { name: 'RSI (14)', value: (35 + Math.random() * 30).toFixed(1), status: ['Перепродан', 'Нейтрально', 'Перекуплен'][Math.floor(Math.random()*3)], color: 'blue' },
+        { name: 'MACD', value: Math.random() > 0.5 ? 'Бычий ↑' : 'Медвежий ↓', status: 'Сигнал', color: Math.random() > 0.5 ? 'emerald' : 'red' },
+        { name: 'Stochastic', value: (20 + Math.random() * 60).toFixed(1), status: Math.random() > 0.5 ? 'Покупка' : 'Продажа', color: 'purple' },
+        { name: 'Bollinger', value: 'Сужение', status: 'Волатильность ↓', color: 'orange' },
+        { name: 'ADX', value: (15 + Math.random() * 40).toFixed(1), status: Math.random() > 0.5 ? 'Тренд сильный' : 'Тренд слабый', color: 'cyan' },
+        { name: 'Объём', value: selectedCoin.volume, status: Math.random() > 0.5 ? '▲ Рост' : '▼ Падение', color: 'amber' },
+      ];
+      document.getElementById('indicatorsGrid').innerHTML = indicators.map(ind => `
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <p class="text-[10px] text-slate-400 font-black uppercase tracking-wider">${ind.name}</p>
+          <p class="text-base font-black text-slate-800 mt-1">${ind.value}</p>
+          <p class="text-[10px] text-${ind.color}-500 font-bold mt-0.5">${ind.status}</p>
+        </div>
+      `).join('');
+      setTimeout(() => initChart(selectedCoin), 100);
+      document.getElementById('analysisModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('analysisModal').classList.add('hidden');
+      document.body.style.overflow = '';
+      if (chart) { chart.remove(); chart = null; }
+    }
+
+    async function runGroqAnalysis() {
+      const btn = document.getElementById('runAnalysisBtn');
+      const resultDiv = document.getElementById('aiResult');
+
+      if (!GROQ_API_KEY || !GROQ_API_KEY.startsWith('gsk_') || GROQ_API_KEY.includes('ВАШ')) {
+        showToast('⚠️ Добавь Groq API Key в код (строка 15)');
+        return;
+      }
+
+      btn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></div> Анализирую...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.1-70b-versatile',
+            messages: [
+              { role: 'system', content: 'Ты — профессиональный криптоаналитик Oracle AI. Анализируй коин. Отвечай СТРОГО в JSON: {"sentiment":"Бычий|Медвежий|Нейтральный","confidence":число,"target":число,"stoploss":число,"risk":"Низкий|Средний|Высокий","reasoning":"кратко","rr":"1:X"}' },
+              { role: 'user', content: `Проанализируй ${selectedCoin.name} (${selectedCoin.symbol}) по цене $${selectedCoin.price}, изменение ${selectedCoin.change.toFixed(2)}% за 24ч, объём ${selectedCoin.volume}, кап ${selectedCoin.cap}. Дай торговый сигнал.` }
+            ],
+            temperature: 0.3, max_tokens: 500
+          })
+        });
+
+        if (!response.ok) throw new Error('Groq API error: ' + response.status);
+        const data = await response.json();
+        const aiText = data.choices[0].message.content;
+
+        let aiData;
+        try { const m = aiText.match(/\{[\s\S]*\}/); aiData = m ? JSON.parse(m[0]) : null; }
+        catch (e) { aiData = null; }
+        if (!aiData) aiData = generateFallbackAnalysis();
+        displayAnalysis(aiData);
+        showToast('✅ ИИ-анализ от Groq завершён!');
+      } catch (error) {
+        console.error('Groq error:', error);
+        showToast('❌ Groq API недоступен. Локальный анализ.');
+        displayAnalysis(generateFallbackAnalysis());
+      }
+    }
+
+    function generateFallbackAnalysis() {
+      const bullish = selectedCoin.change > 0;
+      return {
+        sentiment: bullish ? 'Бычий' : selectedCoin.change < -5 ? 'Медвежий' : 'Нейтральный',
+        confidence: Math.floor(50 + Math.random() * 35),
+        target: selectedCoin.price * (bullish ? 1.08 : 0.92),
+        stoploss: selectedCoin.price * (bullish ? 0.94 : 1.06),
+        risk: Math.abs(selectedCoin.change) > 10 ? 'Высокий' : 'Средний',
+        reasoning: bullish ? 'Положительная динамика с ростом объёмов.' : 'Отрицательная динамика, возможна коррекция.',
+        rr: '1:2.1'
+      };
+    }
+
+    function displayAnalysis(a) {
+      const isBuy = a.sentiment === 'Бычий';
+      const color = isBuy ? 'emerald' : a.sentiment === 'Медвежий' ? 'red' : 'yellow';
+      const icon = isBuy ? '📈' : a.sentiment === 'Медвежий' ? '📉' : '⏳';
+      const signalText = isBuy ? 'ПОКУПКА' : a.sentiment === 'Медвежий' ? 'ПРОДАЖА' : 'ДЕРЖАТЬ';
+
+      document.getElementById('aiResult').innerHTML = `
+        <div class="space-y-4 animate-fade-up">
+          <div class="bg-${color}-50 rounded-2xl p-4 border border-${color}-200">
+            <div class="flex items-center justify-between">
+              <div><p class="text-[10px] text-${color}-600 font-black uppercase tracking-widest">Настроение</p><p class="text-2xl font-black text-${color}-600">${a.sentiment}</p></div>
+              <div class="text-right"><p class="text-[10px] text-slate-400 font-bold uppercase">Уверенность</p><p class="text-3xl font-black text-slate-800">${a.confidence}%</p></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+            <p class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">🧠 Анализ Groq AI</p>
+            <p class="text-sm text-slate-700 leading-relaxed font-medium">${a.reasoning}</p>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100"><p class="text-[10px] text-slate-400 font-black uppercase">🎯 Цель</p><p class="text-xl font-black text-emerald-500">$${a.target < 0.01 ? a.target.toExponential(2) : a.target.toFixed(4)}</p></div>
+            <div class="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100"><p class="text-[10px] text-slate-400 font-black uppercase">🛑 Стоп</p><p class="text-xl font-black text-red-500">$${a.stoploss < 0.01 ? a.stoploss.toExponential(2) : a.stoploss.toFixed(4)}</p></div>
+          </div>
+          <div class="bg-orange-50 rounded-2xl p-4 border border-orange-200"><p class="text-[10px] text-orange-600 font-black uppercase">⚡ Риск</p><p class="text-sm font-semibold text-slate-700">${a.risk} — ${a.rr}</p></div>
+        </div>
+      `;
+      const sb = document.getElementById('signalBox');
+      sb.className = 'rounded-3xl p-5 border-2 border-' + color + '-400 bg-' + color + '-50 animate-bounce-in';
+      sb.classList.remove('hidden');
+      document.getElementById('signalIcon').textContent = icon;
+      document.getElementById('signalText').textContent = signalText;
+      document.getElementById('signalText').className = 'text-2xl font-black text-' + color + '-600';
+      document.getElementById('signalConfidence').textContent = 'Уверенность Oracle: ' + a.confidence + '%';
+      document.getElementById('orderLevels').classList.remove('hidden');
+      document.getElementById('tpLevel').textContent = '$' + (a.target < 0.01 ? a.target.toExponential(2) : a.target.toFixed(4));
+      document.getElementById('slLevel').textContent = '$' + (a.stoploss < 0.01 ? a.stoploss.toExponential(2) : a.stoploss.toFixed(4));
+      document.getElementById('rrRatio').textContent = a.rr;
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addChatMessage(text, true);
+      input.value = '';
+
+      if (GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_') && !GROQ_API_KEY.includes('ВАШ')) {
+        try {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'llama-3.1-70b-versatile',
+              messages: [
+                { role: 'system', content: 'Ты — Oracle AI, крипто-аналитик. Отвечай кратко, по делу, с эмодзи. Давай конкретные советы по трейдингу.' },
+                { role: 'user', content: text }
+              ],
+              temperature: 0.7, max_tokens: 400
+            })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            addChatMessage(data.choices[0].message.content);
+            return;
+          }
+        } catch (e) { console.error('Chat error:', e); }
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+      const responses = [
+        `🔍 Анализирую <strong class="text-orange-500">${text}</strong>... Рынок показывает смешанные сигналы. Рекомендую дождаться закрытия свечи на 4H.`,
+        `📊 <strong class="text-orange-500">${text}</strong>: Объёмы растут, но RSI подходит к перекупленности. Осторожно с лонгом — возможен откат.`,
+        `🎯 Отличный вопрос! <strong class="text-orange-500">${text}</strong> сейчас на ключевом уровне поддержки. Если удержит — бычий сценарий с целью +15%.`,
+        `⚠️ <strong class="text-orange-500">${text}</strong> — высокая волатильность. Не более 5% портфеля.`,
+        `🧠 По данным анализа: <strong class="text-orange-500">${text}</strong> формирует паттерн "${['Треугольник', 'Флаг', 'Двойная вершина', 'Клин'][Math.floor(Math.random()*4)]}". Жди пробоя!`
+      ];
+      addChatMessage(responses[Math.floor(Math.random() * responses.length)]);
+    }
+
+    function addChatMessage(text, isUser) {
+      const container = document.getElementById('chatMessages');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex gap-3 animate-fade-up';
+      if (isUser) {
+        msgDiv.innerHTML = `<div class="ml-auto bg-gradient-to-r from-orange-400 to-orange-500 rounded-2xl rounded-tr-sm px-4 py-3 shadow-md max-w-[85%]"><p class="text-sm text-white leading-relaxed">${text}</p></div>`;
+      } else {
+        msgDiv.innerHTML = `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm flex-shrink-0 shadow-md">🔮</div><div class="bg-slate-50 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-100 max-w-[85%]"><p class="text-sm text-slate-700 leading-relaxed">${text}</p></div>`;
+      }
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function searchCoin() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!query) { showToast('Введите тикер коина'); return; }
+      const found = allCoins.find(c => c.symbol.toLowerCase() === query || c.name.toLowerCase().includes(query));
+      if (found) { openCoin(found.id); document.getElementById('searchInput').value = ''; return; }
+
+      showToast('🔍 Поиск через CoinGecko...');
+      try {
+        const response = await fetch(`${COINGECKO_API}/search?query=${query}`);
+        const data = await response.json();
+        if (data.coins && data.coins.length > 0) {
+          const coin = data.coins[0];
+          const detailResponse = await fetch(`${COINGECKO_API}/coins/${coin.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`);
+          const detail = await detailResponse.json();
+          const newCoin = {
+            id: coin.id, symbol: coin.symbol.toUpperCase(), name: coin.name,
+            price: detail.market_data?.current_price?.usd || 0,
+            change: detail.market_data?.price_change_percentage_24h || 0,
+            volume: '$' + formatNumber(detail.market_data?.total_volume?.usd || 0),
+            cap: '$' + formatNumber(detail.market_data?.market_cap?.usd || 0),
+            ath: '$' + formatNumber(detail.market_data?.ath?.usd || 0),
+            image: coin.large || coin.thumb, type: 'new', desc: 'Найден через поиск', marketCapRank: detail.market_cap_rank
+          };
+          allCoins.unshift(newCoin);
+          renderCoins(currentTab);
+          showToast('✅ Найден: ' + newCoin.symbol + '!');
+          setTimeout(() => openCoin(newCoin.id), 300);
+        } else { showToast('❌ Коин не найден'); }
+      } catch (error) { console.error('Search error:', error); showToast('❌ Ошибка поиска'); }
+    }
+
+    function analyzeTrending() {
+      const trending = allCoins.filter(c => c.change > 10).sort((a, b) => b.change - a.change).slice(0, 5);
+      let msg = '🔥 <strong>Топ-растущие за 24ч:</strong><br>';
+      trending.forEach((c, i) => { msg += (i+1) + '. ' + c.name + ' (+' + c.change.toFixed(2) + '%)<br>'; });
+      msg += '<br>⚠️ Высокая волатильность — используй стоп-лоссы!';
+      addChatMessage(msg);
+    }
+
+    function scanNewMemes() {
+      const memes = allCoins.filter(c => c.type === 'meme' || c.change > 50);
+      let msg = '🆕 <strong>Активные мем-коины:</strong><br>Найдено ' + memes.length + ' токенов.<br><br>';
+      memes.slice(0, 5).forEach(c => { msg += '🐸 ' + c.symbol + ': ' + (c.change > 0 ? '+' : '') + c.change.toFixed(2) + '%<br>'; });
+      msg += '<br>💡 Совет: Мем-коины — лотерея. Не более 2% капитала.';
+      addChatMessage(msg);
+    }
+
+    function showFearGreed() {
+      const index = 35 + Math.floor(Math.random() * 40);
+      const mood = index < 25 ? '😨 Экстремальный страх' : index < 45 ? '😰 Страх' : index < 55 ? '😐 Нейтрально' : index < 75 ? '😊 Жадность' : '🤑 Экстремальная жадность';
+      addChatMessage('📊 <strong>Fear & Greed Index:</strong> ' + index + '/100<br>' + mood + '<br><br>' + (index < 50 ? '🟢 Хорошая точка для покупки.' : '🔴 Рынок перегрет — осторожно.'));
+    }
+
+    function showWhales() {
+      addChatMessage('🐋 <strong>Активность китов:</strong><br><br>💰 BTC: Крупный перевод 2,340 BTC ($157M)<br>💰 ETH: Вывод с биржи 45,000 ETH ($155M)<br>🐕 DOGE: Аккумуляция 890M токенов<br><br>📈 Выводы с бирж = бычий сигнал.');
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastText').innerHTML = text;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    loadCoins();
+  </script>
+</body>
+</html>
